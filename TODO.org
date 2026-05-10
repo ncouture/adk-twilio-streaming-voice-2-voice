@@ -1,0 +1,15 @@
+* TODO Integrate registration and demo into stormvault.net.
+** NEXT [#A]  Implement proper prompt in adk/src/agent.py
+[2026-05-09 Sat 23:14]
+
+Use ~/org/stormvault.org #8 and #9
+** TODO Migrate the ~/git/adk/src/agent.py in this repository's @agents/ directory
+[2026-05-09 Sat 23:21]
+** TODO Migrate the ~/git/adk/src/StormMind/behavioral_prior_agent/ agent in this repo's @agents/ directory
+[2026-05-09 Sat 23:23]
+** NEXT [#C]  Fix the endpoint of the firebase function ~/git/strmvlt/functions/main.py ~/git/strmvlt/firebase.json
+:LOGBOOK:
+CLOCK: [2026-05-09 Sat 23:18]
+- State "TODO"       from "WAITING"    [2026-05-09 Sat 23:14]
+:END:
+[2026-05-09 Sat 23:14]

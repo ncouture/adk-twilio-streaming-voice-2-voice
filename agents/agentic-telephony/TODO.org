@@ -1,0 +1,42 @@
+* To make this agent truly "production-ready," here are the most critical next steps I recommend:
+
+** 1. Fix the "Zombie" Hangup Tool
+  In agent.py, your hangup_tool has a sleep(15). On a live phone call, 15 seconds of silence after the agent says
+  "Goodbye" feels like a dropped call or a system crash.
+   * Recommendation: Reduce this to sleep(1) or remove it entirely. The "Hangup" should be near-instant.
+   * Better Pattern: Instead of raising an exception in the tool, have the tool return a specific string (e.g.,
+     {"signal": "terminate"}) and have your handle_agent_event in main.py look for that signal in the tool output to
+     close the Twilio call gracefully.
+
+** 2. Implement True "Barge-In" (Interruption)
+  Your main.py sends a {"event": "clear"} to Twilio when interrupted. This stops the audio on the handset, but the
+  Gemini model might still be "thinking" or "generating" the rest of that sentence.
+   * Recommendation: When event.interrupted is detected in live_messaging.py, you should ideally clear the
+     live_request_queue or send a signal to the model to stop the current generation so it can listen to the new input
+     immediately.
+
+** 3. Add a "Health Check" for MCP Tools
+  Since the tools are loaded asynchronously during startup, if the Google Calendar API is down or credentials expire,
+  the agent will simply start without those tools, and the user won't know why.
+*** Recommendation:
+  Add a FastAPI endpoint (e.g., GET /health) that returns the list of currently loaded mcp_tools.
+
+  This makes debugging much easier.
+
+** 4. Optimize Audio Latency
+  You are transcoding between 8kHz (Twilio) and 16kHz/24kHz (Gemini).
+*** Recommendation: Double-check the audio.py implementation. Ensure you are using a high-performance resampler (like
+     soxr with the very low or low quality setting) to shave off those extra 50-100ms of latency that can make a
+     conversation feel "laggy."
+
+** 5. Clean Up placeholders
+  agent.py still contains a lot of commented-out code and a module-level root_agent = get_inbound_call_agent() which is
+  now redundant (and potentially misleading) since live_messaging.py uses the factory.
+
+  6. Validation Test
+  Run the server and use the mcp-inspector or a simple script to verify that the google_calendar_api.py can actually see
+  your calendar events.
+   1 npx @modelcontextprotocol/inspector python3 mcp_service/google_calendar_api.py
+
+  Would you like me to help implement any of these specific improvements (e.g., the Hangup signaling or the Health
+  Check)?
