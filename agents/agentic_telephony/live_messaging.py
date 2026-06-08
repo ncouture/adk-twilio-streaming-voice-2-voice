@@ -20,7 +20,7 @@ def text_to_content(text: str, role: Literal["user", "model"] = "user") -> Conte
     return Content(role=role, parts=[Part(text=text)])
 
 
-APP_NAME = "Sunny Streaming"
+APP_NAME = "adk_twilio"
 
 LiveEvents = AsyncGenerator[Event, None]
 
@@ -133,7 +133,7 @@ async def agent_to_client_messaging(on_agent_event: OnAgentEvent, live_events: L
         for part in event.content.parts:
             # Check for tool call or tool response in part
             # If the tool returns a signal, it might be in the model's text or a tool output
-            
+
             is_text = hasattr(part, "text") and part.text is not None
             is_audio = (
                 part.inline_data
@@ -152,7 +152,7 @@ async def agent_to_client_messaging(on_agent_event: OnAgentEvent, live_events: L
             elif is_text:
                 # Check for termination signal in text (as requested in TODO)
                 if '"signal": "terminate"' in part.text:
-                     await on_agent_event(AgentTerminateEvent())
+                    await on_agent_event(AgentTerminateEvent())
                 continue
 
 

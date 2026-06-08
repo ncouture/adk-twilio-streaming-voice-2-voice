@@ -11,7 +11,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 from google.adk.agents import LlmAgent
-from google.adk.tools import agent_tool
+# from google.adk.tools import agent_tool
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 MODEL_NAME = "gemini-3.1-flash-live-preview"
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
+
 
 def authenticate_google_calendar():
     """Authenticate using Google's default auth and return Calendar service object"""
@@ -39,7 +40,8 @@ def authenticate_google_calendar():
         logger.error(f"Authentication error: {error}")
         raise
 
-@agent_tool
+
+# @agent_tool
 def get_all_calendars() -> str:
     """Get all Google Calendars accessible to the user"""
     try:
@@ -71,9 +73,12 @@ def get_all_calendars() -> str:
 
     except Exception as e:
         logger.error(f"Error in get_all_calendars: {e}")
-        return json.dumps({"success": False, "error": str(e), "message": "Failed to retrieve calendars"}, indent=2)
+        return json.dumps(
+            {"success": False, "error": str(e), "message": "Failed to retrieve calendars"}, indent=2
+        )
 
-@agent_tool
+
+# @agent_tool
 def get_calendar_events(
     calendar_id: str = "primary",
     time_min: Optional[str] = None,
@@ -82,7 +87,7 @@ def get_calendar_events(
 ) -> str:
     """
     Get events from a specific Google Calendar.
-    
+
     Args:
         calendar_id: Calendar ID (default: primary)
         time_min: Lower bound for event start time (ISO format, e.g., '2024-12-25T00:00:00Z')
@@ -120,18 +125,22 @@ def get_calendar_events(
             }
             formatted_events.append(formatted_event)
 
-        return json.dumps({
-            "success": True,
-            "events": formatted_events,
-            "total_events": len(formatted_events),
-            "calendar_id": calendar_id,
-        }, indent=2)
+        return json.dumps(
+            {
+                "success": True,
+                "events": formatted_events,
+                "total_events": len(formatted_events),
+                "calendar_id": calendar_id,
+            },
+            indent=2,
+        )
 
     except Exception as e:
         logger.error(f"Error in get_calendar_events: {e}")
         return json.dumps({"success": False, "error": str(e)}, indent=2)
 
-@agent_tool
+
+# @agent_tool
 def create_meet_event(
     summary: str,
     start_datetime: str,
@@ -165,22 +174,25 @@ def create_meet_event(
                     "requestId": f"meet-{datetime.now().strftime('%Y%m%d%H%M%S')}",
                     "conferenceSolutionKey": {"type": "hangoutsMeet"},
                 }
-            }
+            },
         }
 
         if attendees:
             event["attendees"] = [{"email": email} for email in attendees]
 
-        created_event = service.events().insert(
-            calendarId=calendar_id, body=event, conferenceDataVersion=1, sendUpdates="all"
-        ).execute()
+        created_event = (
+            service.events()
+            .insert(calendarId=calendar_id, body=event, conferenceDataVersion=1, sendUpdates="all")
+            .execute()
+        )
 
         return json.dumps({"success": True, "event": created_event}, indent=2)
     except Exception as e:
         logger.error(f"Error in create_meet_event: {e}")
         return json.dumps({"success": False, "error": str(e)}, indent=2)
 
-@agent_tool
+
+# @agent_tool
 def cancel_calendar_event(calendar_id: str, event_id: str) -> str:
     """
     Cancel (delete) a specific event from Google Calendar.
@@ -191,13 +203,18 @@ def cancel_calendar_event(calendar_id: str, event_id: str) -> str:
     """
     try:
         service = authenticate_google_calendar()
-        service.events().delete(calendarId=calendar_id, eventId=event_id, sendUpdates="all").execute()
-        return json.dumps({"success": True, "message": f"Event {event_id} successfully cancelled"}, indent=2)
+        service.events().delete(
+            calendarId=calendar_id, eventId=event_id, sendUpdates="all"
+        ).execute()
+        return json.dumps(
+            {"success": True, "message": f"Event {event_id} successfully cancelled"}, indent=2
+        )
     except Exception as e:
         logger.error(f"Error in cancel_calendar_event: {e}")
         return json.dumps({"success": False, "error": str(e)}, indent=2)
 
-@agent_tool
+
+# @agent_tool
 def get_today_events(calendar_id: str = "primary") -> str:
     """Get today's events from the calendar"""
     today = datetime.now()
@@ -205,31 +222,34 @@ def get_today_events(calendar_id: str = "primary") -> str:
     time_max = today.replace(hour=23, minute=59, second=59, microsecond=999999).isoformat() + "Z"
     return get_calendar_events(calendar_id, time_min, time_max, 50)
 
-@agent_tool
+
+# @agent_tool
 def hangup_tool() -> str:
     """
     Called when the Agent and/or user signal they are ending the call.
     """
     return json.dumps({"signal": "terminate"})
 
-@agent_tool
+
+# @agent_tool
 def goodbye_tool() -> str:
     """
     Called when the Agent and/or user expresses their farewell.
     """
     return json.dumps({"signal": "terminate"})
 
+
 @lru_cache(maxsize=128)
 def get_inbound_call_agent(extra_tools: tuple = None) -> LlmAgent:
     extra_tools = extra_tools or ()
     base_tools = [
-        hangup_tool, 
+        hangup_tool,
         goodbye_tool,
         get_all_calendars,
         get_calendar_events,
         create_meet_event,
         cancel_calendar_event,
-        get_today_events
+        get_today_events,
     ]
     all_tools = base_tools + list(extra_tools)
 
@@ -257,5 +277,6 @@ def get_inbound_call_agent(extra_tools: tuple = None) -> LlmAgent:
         Hangup/Goodbye Tool: Use to end the call when finished.
         """,
     )
+
 
 root_agent = get_inbound_call_agent()
