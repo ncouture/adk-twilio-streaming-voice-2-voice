@@ -69,7 +69,10 @@ async def twilio_websocket(ws: WebSocket):
     await ws.receive_json()  # throw away `connected` event
 
     start_event = await ws.receive_json()
-    assert start_event["event"] == "start"
+    if start_event.get("event") != "start":
+        logger.error(f"Expected start event, got: {start_event}")
+        await ws.close()
+        return
 
     call_sid = start_event["start"]["callSid"]
     stream_sid = start_event["streamSid"]
