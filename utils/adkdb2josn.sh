@@ -24,7 +24,7 @@ for TABLE in $TABLES; do
     echo "  \"$TABLE\":" >> "$OUT"
 
     # Dump table contents as JSON
-    sqlite3 "$DB" ".mode json" "SELECT * FROM $TABLE;" >> "$OUT"
+    sqlite3 "$DB" -cmd ".mode json" "SELECT * FROM \"$TABLE\";" >> "$OUT"
 
     # Add comma unless it's the last table
     if [ "$COUNT" -lt "$TOTAL" ]; then
