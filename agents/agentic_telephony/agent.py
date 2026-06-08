@@ -217,9 +217,10 @@ def cancel_calendar_event(calendar_id: str, event_id: str) -> str:
 # @agent_tool
 def get_today_events(calendar_id: str = "primary") -> str:
     """Get today's events from the calendar"""
-    today = datetime.now()
-    time_min = today.replace(hour=0, minute=0, second=0, microsecond=0).isoformat() + "Z"
-    time_max = today.replace(hour=23, minute=59, second=59, microsecond=999999).isoformat() + "Z"
+    from datetime import timezone
+    today = datetime.now(timezone.utc)
+    time_min = today.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    time_max = today.replace(hour=23, minute=59, second=59, microsecond=999999).isoformat()
     return get_calendar_events(calendar_id, time_min, time_max, 50)
 
 
