@@ -1,5 +1,9 @@
 import asyncio
-from agents.google_calendar_booking.agent import get_booking_agent
+
+try:
+    from agents.google_calendar_booking.agent import get_booking_agent
+except ModuleNotFoundError:
+    from agent import get_booking_agent
 
 
 async def main():
