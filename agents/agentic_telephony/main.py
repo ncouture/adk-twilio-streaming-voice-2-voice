@@ -139,6 +139,8 @@ async def twilio_websocket(ws: WebSocket):
         done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
         for p in pending:
             p.cancel()
+        for t in done:
+            t.result()
     except Exception as ex:
         logger.exception(f"Unexpected Error: {ex}")
     finally:
