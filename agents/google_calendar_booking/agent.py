@@ -206,7 +206,7 @@ def get_today_bookings(calendar_id: str = "primary") -> str:
     return get_calendar_events(calendar_id, time_min, time_max, 50)
 
 @lru_cache(maxsize=128)
-def get_booking_agent(extra_tools: list = []) -> LlmAgent:
+def get_booking_agent(extra_tools: tuple = None) -> LlmAgent:
     """Returns a specialized Google Calendar Booking Agent"""
     base_tools = [
         get_all_calendars,
