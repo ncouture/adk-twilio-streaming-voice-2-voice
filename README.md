@@ -35,8 +35,8 @@ production-ready-ai/
 ├── agents/
 │   ├── orchestrator/        # Course Creator Orchestrator
 │   ├── researcher/          # Course Creator Researcher
-│   ├── judge/               # Course Creator Judgec
-│   ├── ontent_builder/      # Course Creator Content Builder
+│   ├── judge/               # Course Creator Judge
+│   ├── content_builder/     # Course Creator Content Builder
 │   ├── agentic_telephony/      # Real-time Voice Agent (Twilio + Gemini Live)
 │   ├── google_calendar_booking/ # Native ADK Calendar Agent
 
