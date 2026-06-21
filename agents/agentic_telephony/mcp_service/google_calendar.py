@@ -2,7 +2,7 @@ import os
 import logging
 
 from google.adk.agents.llm_agent import LlmAgent
-from google.adk.mcp import MCPToolset
+from google.adk.tools import MCPToolset
 from mcp import StdioServerParameters
 
 # Configure logging

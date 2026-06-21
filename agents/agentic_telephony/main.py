@@ -1,14 +1,16 @@
-import os
 import asyncio
 import base64
 import logging
+import os
 import warnings
 from contextlib import asynccontextmanager
 from uuid import uuid4
+
+from audio import adk_pcm24k_to_twilio_ulaw8k, twilio_ulaw8k_to_adk_pcm16k
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
-from twilio.twiml.voice_response import Connect, Stream, VoiceResponse
-
+from google.adk.telemetry.google_cloud import get_gcp_exporters
+from google.adk.telemetry.setup import maybe_set_otel_providers
 from live_messaging import (
     AgentEvent,
     agent_to_client_messaging,
@@ -16,7 +18,18 @@ from live_messaging import (
     start_agent_session,
     text_to_content,
 )
-from audio import adk_pcm24k_to_twilio_ulaw8k, twilio_ulaw8k_to_adk_pcm16k
+from twilio.twiml.voice_response import Connect, Stream, VoiceResponse
+
+APP_NAME = "agentic_telephony"
+
+# from opentelemetry.sdk._logs import ReadableLogData as LogData
+
+gcp_exporters = get_gcp_exporters(
+    enable_cloud_logging=True,
+)
+os.environ["OTEL_SERVICE_NAME"] = "your-adk-agent"
+os.environ["OTEL_RESOURCE_ATTRIBUTES"] = "key1=value1,key2=value2"
+maybe_set_otel_providers([gcp_exporters])
 
 # Configure logging
 logging.basicConfig(
@@ -28,13 +41,13 @@ logger = logging.getLogger(__name__)
 # Suppress Pydantic serialization warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
 
-APP_NAME = "stormvault-net-demo-agent"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Telephony service starting up...")
     yield
     logger.info("Telephony service shutting down...")
+
 
 # Initialize app with lifespan
 api = FastAPI(lifespan=lifespan)
@@ -79,9 +92,7 @@ async def twilio_websocket(ws: WebSocket):
     user_id = uuid4().hex  # Fake user ID for this example
 
     # Start agent session (native tools are now loaded in agent.py)
-    live_events, live_request_queue = await start_agent_session(
-        user_id, call_sid, extra_tools=None
-    )
+    live_events, live_request_queue = await start_agent_session(user_id, call_sid, extra_tools=None)
 
     # Agent speaks first
     initial_message = text_to_content("Introduce yourself briefly.", "user")
@@ -94,7 +105,7 @@ async def twilio_websocket(ws: WebSocket):
             return
 
         if event.type == "interrupted":
-            logger.info(f"Agent interrupted")
+            logger.info("Agent interrupted")
             return await ws.send_json({"event": "clear", "streamSid": stream_sid})
 
         if event.type == "terminate":
@@ -137,7 +148,7 @@ async def twilio_websocket(ws: WebSocket):
     try:
         tasks = [
             asyncio.create_task(websocket_loop()),
-            asyncio.create_task(agent_to_client_messaging(handle_agent_event, live_events))
+            asyncio.create_task(agent_to_client_messaging(handle_agent_event, live_events)),
         ]
         done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
         for p in pending:
@@ -153,7 +164,9 @@ async def twilio_websocket(ws: WebSocket):
         except Exception:
             pass
 
+
 if __name__ == "__main__":
     import uvicorn
+
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(api, host="0.0.0.0", port=port)

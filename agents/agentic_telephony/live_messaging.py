@@ -1,18 +1,18 @@
 """Live messaging runtime and bridge for ADK agent."""
 
-import json
-from typing import AsyncGenerator, Awaitable, Callable, Literal
+# import json
 
+from collections.abc import AsyncGenerator, Awaitable, Callable
+from typing import Literal
+
+from agent import get_inbound_call_agent
+from google.adk.agents.live_request_queue import LiveRequestQueue
 from google.adk.agents.run_config import RunConfig, StreamingMode
 from google.adk.events import Event
 from google.adk.runners import InMemoryRunner
-from google.adk.agents.live_request_queue import LiveRequestQueue
-
 from google.genai import types
-from google.genai.types import Part, Blob, Content
+from google.genai.types import Blob, Content, Part
 from pydantic import BaseModel, Field
-
-from agent import get_inbound_call_agent
 
 
 def text_to_content(text: str, role: Literal["user", "model"] = "user") -> Content:
