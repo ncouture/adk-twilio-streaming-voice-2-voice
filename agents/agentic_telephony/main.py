@@ -20,7 +20,7 @@ from live_messaging import (
 )
 from twilio.twiml.voice_response import Connect, Stream, VoiceResponse
 
-from __init__ import _adk_agent_name as APP_NAME
+from agents.agentic_telephony import _adk_agent_name as APP_NAME
 
 gcp_exporters = get_gcp_exporters(
     enable_cloud_logging=True,
