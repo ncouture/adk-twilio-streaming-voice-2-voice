@@ -6,11 +6,12 @@ This project demonstrates a real-time, low-latency AI voice agent that integrate
 
 The core of the application is a FastAPI server that bridges telephony (via Twilio) and generative AI (via Gemini). It handles full-duplex audio streaming, enabling natural "barge-in" (interruptible) conversations and tool-calling capabilities.
 
-The primary agent persona is the **Automated Gatekeeper** (*Le Portier Automatique*), a hyper-competent Chief of Staff designed for a "white-glove" concierge experience, primarily in **French Canadian (Quebecois)** and English.
+The primary agent persona is **Nick**, an Onboarding Specialist for the premium **StormMind AI** Executive Assistant service. Nick is a high-status, high-competence concierge who welcomes new members and guides them through configuring their call-handling preferences (Triage, Route, or Hand Off calls).
 
 ### Key Technologies
 - **Gemini Live API**: Real-time multimodal interaction using the `gemini-3.1-flash-live-preview` model.
-- **Google Agent Development Kit (ADK)**: Framework for building and running AI agents using `LlmAgent` and `InMemoryRunner`.
+- **Google Agent Development Kit (ADK)**: Framework for building and running AI agents using `LlmAgent` and `InMemoryRunner` (using ADK 2.x).
+- **OpenTelemetry / Cloud Logging**: Integrated via Google Cloud Platform logging and trace exporters for real-time diagnostics and agent observability.
 - **FastAPI**: Web framework for the TwiML webhook and WebSocket media stream.
 - **Twilio**: Telephony interface providing the audio stream (8kHz μ-law).
 - **Model Context Protocol (MCP)**: Used for connecting external tools like Google Calendar via `MCPToolset`.
@@ -18,17 +19,19 @@ The primary agent persona is the **Automated Gatekeeper** (*Le Portier Automatiq
 
 ## Architecture
 
-- **`main.py`**: The application entry point. Defines the FastAPI app with an `asynccontextmanager` lifespan that discovers and initializes MCP tools (e.g., Google Calendar). It handles:
-    - `/incoming-call`: TwiML endpoint for call connection.
-    - `/stream`: WebSocket handler for bi-directional Twilio Media Streams.
+- **`main.py`**: The application entry point. Defines the FastAPI app with an `asynccontextmanager` lifespan that discovers and initializes MCP tools (e.g., Google Calendar). It also:
+    - Sets up OpenTelemetry providers with GCP trace/logging exporters.
+    - Handles `/incoming-call` (TwiML endpoint for call connection).
+    - Handles `/stream` (WebSocket handler for bi-directional Twilio Media Streams, including handling agent termination signals).
 - **`agent.py`**: Defines the agent factory `get_inbound_call_agent`.
     - Uses `lru_cache` for performance.
-    - Implements `HangupSignal` exception for call termination via `hangup_tool` or `goodbye_tool`.
-    - Defines the sophisticated "Chief of Staff" persona and instructions.
+    - Defines the sophisticated high-status "Nick" (StormMind AI) onboarding persona and instructions.
+    - Implements `hangup_tool` and `goodbye_tool` that return `{"signal": "terminate"}` to end calls cleanly.
 - **`live_messaging.py`**: Orchestrates the ADK session.
     - Bridges ADK `Event` objects (audio, interruptions, turn completion) to the client.
     - Manages `LiveRequestQueue` for sending real-time audio (16kHz PCM) and initial text prompts.
-    - Configures `SpeechConfig` (e.g., using the "Charon" voice) and `AutomaticActivityDetection`.
+    - Configures `SpeechConfig` (using the "Charon" voice) and `AutomaticActivityDetection`.
+    - Checks for tool-driven `"signal": "terminate"` strings to trigger clean WebSocket termination.
 - **`audio.py`**: Utilities for transcoding:
     - `adk_pcm24k_to_twilio_ulaw8k`: For agent output.
     - `twilio_ulaw8k_to_adk_pcm16k`: For user input.
@@ -70,10 +73,62 @@ uvicorn main:api --host 0.0.0.0 --port 8000
 - **Voice Selection**: Voice configuration (e.g., "Charon", "Zephyr") is managed in `live_messaging.py`.
 - **Testing**: Use `mcp_service/google_calendar_api.py` as a reference for building new toolsets.
 
+## Key Improvements (Recently Resolved)
+
+- **Call Termination Latency**: Solved by replacing the legacy 15s sleep exception with a signaling mechanism. The goodbye/hangup tools return a `{"signal": "terminate"}` payload. `live_messaging.py` checks for this substring in the agent's text response and raises an `AgentTerminateEvent`, which prompts `main.py` to close the Twilio WebSocket immediately and cleanly.
+
 ## Roadmap & Known Issues
 
-- **Call Termination Latency**: Current `hangup_tool` and `goodbye_tool` in `agent.py` have a 15s sleep, which is too long for production. They should be reduced or replaced with a signaling mechanism to gracefully close the Twilio stream.
 - **Barge-In Optimization**: While `main.py` sends a `clear` event to Twilio, the Gemini model's generation should also be canceled/interrupted in `live_messaging.py` to minimize latency on new input.
 - **Tool Health Monitoring**: Add a health check endpoint to verify that MCP tools (like Google Calendar) are correctly loaded and authenticated.
 - **Audio Latency**: Continued profiling of `audio.py` (specifically `soxr` resampling) is needed to keep conversation latency below 500ms.
 - **Cleanup**: Remove redundant `root_agent` and commented-out code in `agent.py` to maintain clarity.
+
+
+<!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:7510c1e2 -->
+## Beads Issue Tracker
+
+This project uses **bd (beads)** for issue tracking. Run `bd prime` to see full workflow context and commands.
+
+### Quick Reference
+
+```bash
+bd ready              # Find available work
+bd show <id>          # View issue details
+bd update <id> --claim  # Claim work
+bd close <id>         # Complete work
+```
+
+### Rules
+
+- Use `bd` for ALL task tracking — do NOT use TodoWrite, TaskCreate, or markdown TODO lists
+- Run `bd prime` for detailed command reference and session close protocol
+- Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
+
+**Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md for details and anti-patterns.
+
+## Session Completion
+
+**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+
+**MANDATORY WORKFLOW:**
+
+1. **File issues for remaining work** - Create issues for anything that needs follow-up
+2. **Run quality gates** (if code changed) - Tests, linters, builds
+3. **Update issue status** - Close finished work, update in-progress items
+4. **PUSH TO REMOTE** - This is MANDATORY:
+   ```bash
+   git pull --rebase
+   git push
+   git status  # MUST show "up to date with origin"
+   ```
+5. **Clean up** - Clear stashes, prune remote branches
+6. **Verify** - All changes committed AND pushed
+7. **Hand off** - Provide context for next session
+
+**CRITICAL RULES:**
+- Work is NOT complete until `git push` succeeds
+- NEVER stop before pushing - that leaves work stranded locally
+- NEVER say "ready to push when you are" - YOU must push
+- If push fails, resolve and retry until it succeeds
+<!-- END BEADS INTEGRATION -->
