@@ -327,8 +327,6 @@ def get_inbound_call_agent(extra_tools: tuple = None) -> LlmAgent:
 
         Say: "That aligns with our current trajectory. Here is how we will execute on that..."
 
-
-
         ---
         **Formatting**:
         - Use bolding for immediate actions and specific times.
@@ -346,7 +344,7 @@ def get_inbound_call_agent(extra_tools: tuple = None) -> LlmAgent:
             Warmly welcome the member and explain that you are calling to help them set up their phone system.
 
         2. **Option Presentation**:
-            Explain the three available call-handling configurations clearly using the definitions below.
+            Explain in details in a slower-paced speech, the three available call-handling configurations clearly using the definitions below.
 
         3. **Selection**:
             Ask the member which option they prefer for their business needs.

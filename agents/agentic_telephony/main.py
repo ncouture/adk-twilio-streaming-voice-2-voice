@@ -20,15 +20,21 @@ from live_messaging import (
 )
 from twilio.twiml.voice_response import Connect, Stream, VoiceResponse
 
-APP_NAME = "agentic_telephony"
-
-# from opentelemetry.sdk._logs import ReadableLogData as LogData
+from __init__ import _adk_agent_name as APP_NAME
 
 gcp_exporters = get_gcp_exporters(
     enable_cloud_logging=True,
 )
-os.environ["OTEL_SERVICE_NAME"] = "your-adk-agent"
-os.environ["OTEL_RESOURCE_ATTRIBUTES"] = "key1=value1,key2=value2"
+os.environ["OTEL_SERVICE_NAME"] = APP_NAME
+os.environ["OTEL_RESOURCE_ATTRIBUTES"] = ",".join(
+    [
+        "env=production",
+        "framework=google-adk",
+        f"agent_name={APP_NAME}",
+        "host=cloudrun",
+        "version=",
+    ]
+)
 maybe_set_otel_providers([gcp_exporters])
 
 # Configure logging
